@@ -1,7 +1,7 @@
 {
-  "name": "lily-design-system-svelte-locale-select",
+  "name": "lily-design-system-svelte-text-size-select",
   "version": "0.1.0",
-  "description": "Lily Design System - Svelte 5 locale select",
+  "description": "Lily Design System - Svelte 5 text size select",
   "type": "module",
   "svelte": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -28,7 +28,7 @@
     "design",
     "system",
     "svelte",
-    "locale",
+    "text-size",
     "select"
   ],
   "author": "joel@joelparkerhenderson.com",
