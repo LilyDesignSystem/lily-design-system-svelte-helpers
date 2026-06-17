@@ -8,13 +8,13 @@
 
     /** Arguments passed to a custom `children` snippet. */
     export type ChildArgs = {
-        /** The locale codes to render as options. */
+        /** The locale codes to render as `<option>` elements. */
         locales: string[];
         /** Currently selected locale code (consumer form, not BCP 47-normalised). */
         value: string;
         /** Apply a locale imperatively (also writes back to `value`). */
         setLocale: (locale: string) => void;
-        /** Shared `name` attribute for the radio inputs. */
+        /** `name` attribute of the `<select>`. */
         name: string;
         /** Resolve a locale code to its display label. */
         labelFor: (locale: string) => string;
@@ -26,7 +26,7 @@
 
     /** Public props for LocaleSelect. See `spec.md` §4 for the contract. */
     export type Props = {
-        /** Accessible label for the radiogroup. */
+        /** Accessible label for the `<select>`. */
         label: string;
         /** Available locale codes. */
         locales: string[];
@@ -38,21 +38,21 @@
         storageKey?: string;
         /** Resolve `navigator.languages` to a supported locale on first visit. */
         detectFromNavigator?: boolean;
-        /** `name` attribute shared by the radio inputs. */
+        /** `name` attribute of the `<select>`. */
         name?: string;
         /** Element that receives `lang` and `dir`. Defaults to document.documentElement. */
         target?: HTMLElement | null;
-        /** If false, the picker only writes `lang` and never touches `dir`. */
+        /** If false, the select only writes `lang` and never touches `dir`. */
         applyDir?: boolean;
         /** Optional pretty labels per locale code. */
         localeLabels?: Record<string, string>;
-        /** Custom rendering of the options. */
+        /** Custom rendering of the `<option>` elements. */
         children?: Snippet<[ChildArgs]>;
-        /** Called after the picker applies a new locale. */
+        /** Called after the select applies a new locale. */
         onChange?: (locale: string) => void;
-        /** Extra CSS class on the <fieldset> root. */
+        /** Extra CSS class on the `<select>` root. */
         class?: string;
-        /** Spread props onto the root <fieldset>. */
+        /** Spread props onto the root `<select>`. */
         [key: string]: unknown;
     };
 
@@ -217,17 +217,13 @@
 
         if (current) applyLocale(current);
     });
-
-    function onInputChange(e: Event) {
-        const next = (e.target as HTMLInputElement).value;
-        setLocale(next);
-    }
 </script>
 
-<fieldset
+<select
     class={`locale-select ${className}`.trim()}
-    role="radiogroup"
     aria-label={label}
+    {name}
+    bind:value
     {...restProps}
 >
     {#if children}
@@ -242,16 +238,9 @@
         })}
     {:else}
         {#each locales as locale (locale)}
-            <label class="locale-select-option" lang={tagFor(locale)}>
-                <input
-                    type="radio"
-                    {name}
-                    value={locale}
-                    checked={value === locale}
-                    onchange={onInputChange}
-                />
-                <span class="locale-select-option-label">{labelFor(locale)}</span>
-            </label>
+            <option class="locale-select-option" value={locale} lang={tagFor(locale)}
+                >{labelFor(locale)}</option
+            >
         {/each}
     {/if}
-</fieldset>
+</select>

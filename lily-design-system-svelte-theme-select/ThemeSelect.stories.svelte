@@ -58,17 +58,9 @@
 <Story name="Custom rendering">
   {#snippet template(args)}
     <ThemeSelect {...args}>
-      {#snippet children({ themes, value, setTheme, labelFor })}
+      {#snippet children({ themes, value, labelFor })}
         {#each themes as t (t)}
-          <button
-            type="button"
-            data-theme={t}
-            aria-pressed={value === t}
-            onclick={() => setTheme(t)}
-            style="padding: 0.25rem 0.5rem; margin: 0 0.25rem;"
-          >
-            {labelFor(t)}
-          </button>
+          <option value={t} selected={value === t}>{labelFor(t)} ✦</option>
         {/each}
       {/snippet}
     </ThemeSelect>

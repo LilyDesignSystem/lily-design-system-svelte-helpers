@@ -49,12 +49,12 @@ describe("ThemeSelect — pure helpers", () => {
 });
 
 describe("ThemeSelect — markup contract (§4.2, §7.1–§7.5)", () => {
-    test("§7.1 renders a fieldset with role=radiogroup", () => {
+    test("§7.1 renders a <select> with role=combobox", () => {
         render(ThemeSelect, {
             props: { label: "Theme", themesUrl: URL_TRAILING, themes: THEMES },
         });
-        const group = screen.getByRole("radiogroup");
-        expect(group.tagName).toBe("FIELDSET");
+        const select = screen.getByRole("combobox");
+        expect(select.tagName).toBe("SELECT");
     });
 
     test("§7.2 aria-label is the supplied label", () => {
@@ -64,7 +64,7 @@ describe("ThemeSelect — markup contract (§4.2, §7.1–§7.5)", () => {
         expect(screen.getByLabelText("Choose theme")).toBeTruthy();
     });
 
-    test("§7.3 one radio per theme, sharing the supplied name", () => {
+    test("§7.3 one option per theme; the select carries the supplied name", () => {
         render(ThemeSelect, {
             props: {
                 label: "Theme",
@@ -73,17 +73,18 @@ describe("ThemeSelect — markup contract (§4.2, §7.1–§7.5)", () => {
                 name: "appearance",
             },
         });
-        const radios = screen.getAllByRole("radio") as HTMLInputElement[];
-        expect(radios.length).toBe(3);
-        expect(radios.every((r) => r.name === "appearance")).toBe(true);
+        const options = screen.getAllByRole("option") as HTMLOptionElement[];
+        expect(options.length).toBe(3);
+        const select = screen.getByRole("combobox") as HTMLSelectElement;
+        expect(select.name).toBe("appearance");
     });
 
-    test("§7.4 each radio carries the slug as its value", () => {
+    test("§7.4 each option carries the slug as its value", () => {
         render(ThemeSelect, {
             props: { label: "Theme", themesUrl: URL_TRAILING, themes: THEMES },
         });
-        const radios = screen.getAllByRole("radio") as HTMLInputElement[];
-        expect(radios.map((r) => r.value)).toEqual(THEMES);
+        const options = screen.getAllByRole("option") as HTMLOptionElement[];
+        expect(options.map((o) => o.value)).toEqual(THEMES);
     });
 
     test("§7.5 default labels title-case the slug (no 'default' string)", () => {
@@ -137,7 +138,7 @@ describe("ThemeSelect — dynamic loading (§5, §7.6–§7.11)", () => {
         expect(link!.href.endsWith("/assets/themes/light.css")).toBe(true);
     });
 
-    test("§7.8 selecting a radio updates href, data-theme, and fires onChange", async () => {
+    test("§7.8 selecting an option updates href, data-theme, and fires onChange", async () => {
         const onChange = vi.fn();
         render(ThemeSelect, {
             props: {
@@ -148,8 +149,8 @@ describe("ThemeSelect — dynamic loading (§5, §7.6–§7.11)", () => {
             },
         });
         await flush();
-        const radios = screen.getAllByRole("radio") as HTMLInputElement[];
-        await fireEvent.click(radios[2]); // abyss
+        const select = screen.getByRole("combobox") as HTMLSelectElement;
+        await fireEvent.change(select, { target: { value: "abyss" } });
         await flush();
         expect(document.documentElement.dataset.theme).toBe("abyss");
         expect(getManagedLink()!.href.endsWith("/assets/themes/abyss.css")).toBe(true);
@@ -166,8 +167,8 @@ describe("ThemeSelect — dynamic loading (§5, §7.6–§7.11)", () => {
             },
         });
         await flush();
-        const radios = screen.getAllByRole("radio") as HTMLInputElement[];
-        await fireEvent.click(radios[1]); // dark
+        const select = screen.getByRole("combobox") as HTMLSelectElement;
+        await fireEvent.change(select, { target: { value: "dark" } });
         await flush();
         expect(localStorage.getItem("lily-theme")).toBe("dark");
         unmount();
@@ -214,7 +215,7 @@ describe("ThemeSelect — dynamic loading (§5, §7.6–§7.11)", () => {
 });
 
 describe("ThemeSelect — spread + custom children (§7.12–§7.13)", () => {
-    test("§7.12 extra attributes spread onto the fieldset", () => {
+    test("§7.12 extra attributes spread onto the <select>", () => {
         render(ThemeSelect, {
             props: {
                 label: "Theme",
@@ -229,7 +230,7 @@ describe("ThemeSelect — spread + custom children (§7.12–§7.13)", () => {
     test("§7.13 children snippet receives ChildArgs", () => {
         // Render a custom snippet that surfaces the slugs and `name`.
         const customSnippet = (($anchor: Comment, args: any) => {
-            const node = document.createElement("div");
+            const node = document.createElement("option");
             node.setAttribute("data-testid", "custom");
             node.setAttribute("data-name", args().name);
             node.textContent = args().themes.join(",");

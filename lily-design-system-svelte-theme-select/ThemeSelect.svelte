@@ -3,13 +3,13 @@
 
     /** Arguments passed to a custom `children` snippet. */
     export type ChildArgs = {
-        /** The theme slugs to render as options. */
+        /** The theme slugs to render as `<option>` elements. */
         themes: string[];
         /** Currently selected theme slug. */
         value: string;
         /** Apply a theme imperatively (also writes back to `value`). */
         setTheme: (theme: string) => void;
-        /** Shared `name` attribute for the radio inputs. */
+        /** `name` attribute of the `<select>`. */
         name: string;
         /** Resolve a slug to its display label. */
         labelFor: (theme: string) => string;
@@ -17,7 +17,7 @@
 
     /** Public props for ThemeSelect. See `spec.md` §4 for the contract. */
     export type Props = {
-        /** Accessible label for the radiogroup. */
+        /** Accessible label for the `<select>`. */
         label: string;
         /** Base URL of the themes directory, e.g. "/assets/themes/". */
         themesUrl: string;
@@ -29,7 +29,7 @@
         defaultValue?: string;
         /** If set, persist the selection to localStorage under this key. */
         storageKey?: string;
-        /** `name` attribute shared by the radio inputs. */
+        /** `name` attribute of the `<select>`. */
         name?: string;
         /** File extension appended to each slug when constructing the URL. */
         extension?: string;
@@ -37,13 +37,13 @@
         target?: HTMLElement | null;
         /** Optional pretty labels per slug. */
         themeLabels?: Record<string, string>;
-        /** Custom rendering of the options. */
+        /** Custom rendering of the `<option>` elements. */
         children?: Snippet<[ChildArgs]>;
-        /** Called after the picker applies a new theme. */
+        /** Called after the select applies a new theme. */
         onChange?: (theme: string) => void;
-        /** Extra CSS class on the <fieldset> root. */
+        /** Extra CSS class on the `<select>` root. */
         class?: string;
-        /** Spread props onto the root <fieldset>. */
+        /** Spread props onto the root `<select>`. */
         [key: string]: unknown;
     };
 
@@ -78,7 +78,14 @@
 
     function labelFor(theme: string): string {
         if (theme in themeLabels) return themeLabels[theme];
-        return theme.charAt(0).toUpperCase() + theme.slice(1);
+        // Title-case each hyphen-separated word so a slug like
+        // "united-kingdom-national-health-service-england-for-patients"
+        // renders as "United Kingdom National Health Service England For
+        // Patients" rather than a half-capitalised hyphenated string.
+        return theme
+            .split("-")
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" ");
     }
 
     function getManagedLink(): HTMLLinkElement {
@@ -140,33 +147,20 @@
 
         if (current) applyTheme(current);
     });
-
-    function onInputChange(e: Event) {
-        const next = (e.target as HTMLInputElement).value;
-        setTheme(next);
-    }
 </script>
 
-<fieldset
+<select
     class={`theme-select ${className}`.trim()}
-    role="radiogroup"
     aria-label={label}
+    {name}
+    bind:value
     {...restProps}
 >
     {#if children}
         {@render children({ themes, value: value ?? "", setTheme, name, labelFor })}
     {:else}
         {#each themes as theme (theme)}
-            <label class="theme-select-option">
-                <input
-                    type="radio"
-                    {name}
-                    value={theme}
-                    checked={value === theme}
-                    onchange={onInputChange}
-                />
-                <span class="theme-select-option-label">{labelFor(theme)}</span>
-            </label>
+            <option class="theme-select-option" value={theme}>{labelFor(theme)}</option>
         {/each}
     {/if}
-</fieldset>
+</select>

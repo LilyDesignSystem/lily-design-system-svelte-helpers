@@ -79,10 +79,10 @@ describe("LocaleSelect — pure helpers (§7.2)", () => {
 });
 
 describe("LocaleSelect — markup contract (§4.3, §7.1)", () => {
-    test("§7.1 renders a fieldset with role=radiogroup", () => {
+    test("§7.1 renders a <select> with role=combobox", () => {
         render(LocaleSelect, { props: { label: "Language", locales: LOCALES } });
-        const group = screen.getByRole("radiogroup");
-        expect(group.tagName).toBe("FIELDSET");
+        const select = screen.getByRole("combobox");
+        expect(select.tagName).toBe("SELECT");
     });
 
     test("§7.2 aria-label is the supplied label", () => {
@@ -92,29 +92,30 @@ describe("LocaleSelect — markup contract (§4.3, §7.1)", () => {
         expect(screen.getByLabelText("Choose language")).toBeTruthy();
     });
 
-    test("§7.3 one radio per locale, sharing the supplied name", () => {
+    test("§7.3 one option per locale; the select carries the supplied name", () => {
         render(LocaleSelect, {
             props: { label: "Language", locales: LOCALES, name: "lang" },
         });
-        const radios = screen.getAllByRole("radio") as HTMLInputElement[];
-        expect(radios.length).toBe(LOCALES.length);
-        expect(radios.every((r) => r.name === "lang")).toBe(true);
+        const options = screen.getAllByRole("option") as HTMLOptionElement[];
+        expect(options.length).toBe(LOCALES.length);
+        const select = screen.getByRole("combobox") as HTMLSelectElement;
+        expect(select.name).toBe("lang");
     });
 
-    test("§7.4 each radio carries the locale code as its value", () => {
+    test("§7.4 each option carries the locale code as its value", () => {
         render(LocaleSelect, { props: { label: "Language", locales: LOCALES } });
-        const radios = screen.getAllByRole("radio") as HTMLInputElement[];
-        expect(radios.map((r) => r.value)).toEqual(LOCALES);
+        const options = screen.getAllByRole("option") as HTMLOptionElement[];
+        expect(options.map((o) => o.value)).toEqual(LOCALES);
     });
 
     test("§7.5 each option carries lang in BCP 47 hyphen form", () => {
         render(LocaleSelect, {
             props: { label: "Language", locales: ["en", "en_US", "zh_Hant_TW"] },
         });
-        const labels = document.querySelectorAll<HTMLElement>(".locale-select-option");
-        expect(labels[0].getAttribute("lang")).toBe("en");
-        expect(labels[1].getAttribute("lang")).toBe("en-US");
-        expect(labels[2].getAttribute("lang")).toBe("zh-Hant-TW");
+        const opts = document.querySelectorAll<HTMLElement>(".locale-select-option");
+        expect(opts[0].getAttribute("lang")).toBe("en");
+        expect(opts[1].getAttribute("lang")).toBe("en-US");
+        expect(opts[2].getAttribute("lang")).toBe("zh-Hant-TW");
     });
 
     test("§7.6 visible option text uses localeLabels override when supplied", () => {
@@ -176,7 +177,7 @@ describe("LocaleSelect — locale application (§5.5, §7.3)", () => {
         expect(document.documentElement.lang).toBe("ar");
     });
 
-    test("§7.16 selecting a different radio updates lang, dir, and fires onChange", async () => {
+    test("§7.16 selecting a different option updates lang, dir, and fires onChange", async () => {
         const onChange = vi.fn();
         render(LocaleSelect, {
             props: {
@@ -187,8 +188,8 @@ describe("LocaleSelect — locale application (§5.5, §7.3)", () => {
             },
         });
         await flush();
-        const radios = screen.getAllByRole("radio") as HTMLInputElement[];
-        await fireEvent.click(radios[4]); // ar
+        const select = screen.getByRole("combobox") as HTMLSelectElement;
+        await fireEvent.change(select, { target: { value: "ar" } });
         await flush();
         expect(document.documentElement.lang).toBe("ar");
         expect(document.documentElement.dir).toBe("rtl");
@@ -206,8 +207,8 @@ describe("LocaleSelect — locale application (§5.5, §7.3)", () => {
             },
         });
         await flush();
-        const radios = screen.getAllByRole("radio") as HTMLInputElement[];
-        await fireEvent.click(radios[1]); // en_US
+        const select = screen.getByRole("combobox") as HTMLSelectElement;
+        await fireEvent.change(select, { target: { value: "en_US" } });
         await flush();
         expect(onChange).toHaveBeenLastCalledWith("en_US");
         expect(document.documentElement.lang).toBe("en-US");
@@ -244,8 +245,8 @@ describe("LocaleSelect — initial-value resolution (§5.2, §5.3, §7.4)", () =
             },
         });
         await flush();
-        const radios = screen.getAllByRole("radio") as HTMLInputElement[];
-        await fireEvent.click(radios[2]); // fr
+        const select = screen.getByRole("combobox") as HTMLSelectElement;
+        await fireEvent.change(select, { target: { value: "fr" } });
         await flush();
         expect(localStorage.getItem("lily-locale")).toBe("fr");
         unmount();
@@ -321,7 +322,7 @@ describe("LocaleSelect — initial-value resolution (§5.2, §5.3, §7.4)", () =
 });
 
 describe("LocaleSelect — spread + custom children (§4.1, §7.5)", () => {
-    test("§7.22 extra attributes spread onto the fieldset", () => {
+    test("§7.22 extra attributes spread onto the <select>", () => {
         render(LocaleSelect, {
             props: {
                 label: "Language",
@@ -334,7 +335,7 @@ describe("LocaleSelect — spread + custom children (§4.1, §7.5)", () => {
 
     test("§7.23 children snippet receives ChildArgs", () => {
         const customSnippet = (($anchor: Comment, args: any) => {
-            const node = document.createElement("div");
+            const node = document.createElement("option");
             const a = args();
             node.setAttribute("data-testid", "custom");
             node.setAttribute("data-name", a.name);
