@@ -1,5 +1,5 @@
 <!--
-    07. Wiring Paraglide JS (Inlang).
+    Wiring Paraglide JS (Inlang).
 
     Paraglide compiles each translation to a tree-shakeable function.
     Locale is set via `setLocale()` and read via `getLocale()`. The

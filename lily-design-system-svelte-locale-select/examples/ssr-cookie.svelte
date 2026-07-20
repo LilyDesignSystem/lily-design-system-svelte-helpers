@@ -1,5 +1,5 @@
 <!--
-    08. SvelteKit SSR with cookie persistence.
+    SvelteKit SSR with cookie persistence.
 
     No flash of default locale: the server reads the cookie, fills
     `<html lang dir>` placeholders in app.html, and seeds the select

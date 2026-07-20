@@ -1,5 +1,5 @@
 <!--
-    06. Wiring svelte-i18n.
+    Wiring svelte-i18n.
 
     The select's bindable `value` is wired directly to svelte-i18n's
     `locale` store. Every `$_("key")` call in your templates re-evaluates
