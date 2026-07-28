@@ -6,8 +6,8 @@
      *
      * An in-font arrow rather than a pictograph, matching the other helpers'
      * rule: it renders in the page's own font on every platform and stays
-     * monochrome alongside theme-chooser's ◑, locale-chooser's 🌐 and
-     * text-size-chooser's "A".
+     * monochrome alongside theme-picker's ◑, locale-picker's 🌐 and
+     * text-size-picker's "A".
      */
     export const BLACK_RIGHTWARDS_ARROWHEAD = "\u27A4";
 
@@ -40,7 +40,7 @@
     /** How the button behaves when activated. */
     export type ShareStrategy = "auto" | "native" | "list";
 
-    /** Public props for ShareChooser. See `spec/index.md` §4 for the contract. */
+    /** Public props for SharePicker. See `spec/index.md` §4 for the contract. */
     export type Props = {
         /** Accessible name for the button and the list. */
         label: string;
@@ -97,9 +97,9 @@
 
     let uid = 0;
     /** Stable per-instance id prefix; SSR-safe (no Math.random / Date.now). */
-    export function nextShareChooserId(): string {
+    export function nextSharePickerId(): string {
         uid += 1;
-        return `share-chooser-${uid}`;
+        return `share-picker-${uid}`;
     }
 </script>
 
@@ -122,7 +122,7 @@
         ...restProps
     }: Props = $props();
 
-    const baseId = nextShareChooserId();
+    const baseId = nextSharePickerId();
     const listId = `${baseId}-list`;
 
     let open = $state(false);
@@ -145,7 +145,7 @@
     function items(): HTMLElement[] {
         if (!listEl) return [];
         return Array.from(
-            listEl.querySelectorAll<HTMLElement>(".share-chooser-target, .share-chooser-copy"),
+            listEl.querySelectorAll<HTMLElement>(".share-picker-target, .share-picker-copy"),
         );
     }
 
@@ -279,14 +279,14 @@
 
 <div
     bind:this={rootEl}
-    class={`share-chooser ${className}`.trim()}
+    class={`share-picker ${className}`.trim()}
     onfocusout={onRootFocusOut}
     {...restProps}
 >
     <button
         bind:this={buttonEl}
         type="button"
-        class="share-chooser-button"
+        class="share-picker-button"
         aria-label={label}
         aria-expanded={open}
         aria-controls={listId}
@@ -296,7 +296,7 @@
         {#if children}
             {@render children({ open, url: currentUrl() })}
         {:else}
-            <span class="share-chooser-icon" aria-hidden="true"
+            <span class="share-picker-icon" aria-hidden="true"
                 >{BLACK_RIGHTWARDS_ARROWHEAD}</span
             >
         {/if}
@@ -304,18 +304,18 @@
 
     <ul
         bind:this={listEl}
-        class="share-chooser-list"
+        class="share-picker-list"
         id={listId}
         hidden={!open}
         onkeydown={onListKeydown}
     >
         {#each targets as target (target.id)}
-            <li class="share-chooser-list-item">
+            <li class="share-picker-list-item">
                 <!-- A real link, not role="menuitem": these ARE navigation,
                      and menuitem would strip middle-click, open-in-new-tab
                      and copy-link-address. -->
                 <a
-                    class="share-chooser-target"
+                    class="share-picker-target"
                     data-target-id={target.id}
                     href={target.href(currentUrl(), title, text)}
                     target={target.newTab === false ? undefined : "_blank"}
@@ -328,8 +328,8 @@
         {/each}
 
         {#if copyLabel}
-            <li class="share-chooser-list-item">
-                <button type="button" class="share-chooser-copy" onclick={copyUrl}>
+            <li class="share-picker-list-item">
+                <button type="button" class="share-picker-copy" onclick={copyUrl}>
                     {copyLabel}
                 </button>
             </li>
@@ -339,5 +339,5 @@
     <!-- Copying gives no visual feedback of its own, so the outcome is
          announced. Empty until something happens, so it stays silent on
          load; aria-live announces mutations only. -->
-    <p class="share-chooser-status" aria-live="polite">{status}</p>
+    <p class="share-picker-status" aria-live="polite">{status}</p>
 </div>

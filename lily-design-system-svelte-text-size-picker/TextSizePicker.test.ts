@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-import TextSizeChooser, { sizeName } from "./TextSizeChooser.svelte";
+import TextSizePicker, { sizeName } from "./TextSizePicker.svelte";
 
 const SIZES = ["small", "medium", "large", "x-large"];
 
@@ -12,7 +12,7 @@ function flush(): Promise<void> {
 /** Open the listbox and click the option for `slug`. */
 async function pick(slug: string, sizes: string[] = SIZES): Promise<void> {
     await fireEvent.click(screen.getByRole("button"));
-    const opts = document.querySelectorAll(".text-size-chooser-option");
+    const opts = document.querySelectorAll(".text-size-picker-option");
     await fireEvent.click(opts[sizes.indexOf(slug)]);
 }
 
@@ -29,9 +29,9 @@ afterEach(() => {
     document.documentElement.removeAttribute("data-text-size");
 });
 
-describe("TextSizeChooser — markup contract (§7.1–§7.5)", () => {
+describe("TextSizePicker — markup contract (§7.1–§7.5)", () => {
     test("§7.1 renders a button that controls a listbox", () => {
-        render(TextSizeChooser, { props: { label: "Text size", sizes: SIZES } });
+        render(TextSizePicker, { props: { label: "Text size", sizes: SIZES } });
         const button = screen.getByRole("button");
         expect(button.tagName).toBe("BUTTON");
         expect(button.getAttribute("type")).toBe("button");
@@ -43,8 +43,8 @@ describe("TextSizeChooser — markup contract (§7.1–§7.5)", () => {
     });
 
     test("§7.1 the button renders 'A', hidden from assistive tech", () => {
-        render(TextSizeChooser, { props: { label: "Text size", sizes: SIZES } });
-        const icon = document.querySelector(".text-size-chooser-icon") as HTMLElement;
+        render(TextSizePicker, { props: { label: "Text size", sizes: SIZES } });
+        const icon = document.querySelector(".text-size-picker-icon") as HTMLElement;
         // U+0041 LATIN CAPITAL LETTER A — an in-font letter, not a
         // pictograph, so it never falls back to a bitmap glyph.
         expect(icon.textContent).toBe("A");
@@ -52,18 +52,18 @@ describe("TextSizeChooser — markup contract (§7.1–§7.5)", () => {
     });
 
     test("§7.2 aria-label names the button and the listbox", () => {
-        render(TextSizeChooser, { props: { label: "Choose text size", sizes: SIZES } });
+        render(TextSizePicker, { props: { label: "Choose text size", sizes: SIZES } });
         expect(screen.getByRole("button", { name: "Choose text size" })).toBeTruthy();
-        const list = document.querySelector(".text-size-chooser-list") as HTMLElement;
+        const list = document.querySelector(".text-size-picker-list") as HTMLElement;
         expect(list.getAttribute("aria-label")).toBe("Choose text size");
     });
 
     test("§7.3 one option per size; the hidden input carries the supplied name", async () => {
-        render(TextSizeChooser, {
+        render(TextSizePicker, {
             props: { label: "Text size", sizes: SIZES, name: "scale" },
         });
         await flush();
-        const options = document.querySelectorAll(".text-size-chooser-option");
+        const options = document.querySelectorAll(".text-size-picker-option");
         expect(options.length).toBe(SIZES.length);
         const hidden = document.querySelector('input[type="hidden"]') as HTMLInputElement;
         expect(hidden.name).toBe("scale");
@@ -71,8 +71,8 @@ describe("TextSizeChooser — markup contract (§7.1–§7.5)", () => {
     });
 
     test("§7.4 the listbox is hidden until the button is activated", async () => {
-        render(TextSizeChooser, { props: { label: "Text size", sizes: SIZES } });
-        const list = document.querySelector(".text-size-chooser-list") as HTMLElement;
+        render(TextSizePicker, { props: { label: "Text size", sizes: SIZES } });
+        const list = document.querySelector(".text-size-picker-list") as HTMLElement;
         expect(list.hasAttribute("hidden")).toBe(true);
         await fireEvent.click(screen.getByRole("button"));
         expect(list.hasAttribute("hidden")).toBe(false);
@@ -80,7 +80,7 @@ describe("TextSizeChooser — markup contract (§7.1–§7.5)", () => {
     });
 
     test("§7.4 the active size is the aria-selected option", async () => {
-        render(TextSizeChooser, { props: { label: "Text size", sizes: SIZES } });
+        render(TextSizePicker, { props: { label: "Text size", sizes: SIZES } });
         await flush();
         await fireEvent.click(screen.getByRole("button"));
         const selected = document.querySelectorAll('[role="option"][aria-selected="true"]');
@@ -89,7 +89,7 @@ describe("TextSizeChooser — markup contract (§7.1–§7.5)", () => {
     });
 
     test("§7.5 default labels title-case the slug", () => {
-        render(TextSizeChooser, { props: { label: "Text size", sizes: ["small", "x-large"] } });
+        render(TextSizePicker, { props: { label: "Text size", sizes: ["small", "x-large"] } });
         expect(screen.getByText("Small")).toBeTruthy();
         expect(screen.getByText("X Large")).toBeTruthy();
     });
@@ -97,12 +97,12 @@ describe("TextSizeChooser — markup contract (§7.1–§7.5)", () => {
     test("§7.5 sizeName is the exported resolver the default labels use", () => {
         expect(sizeName("small")).toBe("Small");
         expect(sizeName("x-large")).toBe("X Large");
-        render(TextSizeChooser, { props: { label: "Text size", sizes: ["x-large"] } });
+        render(TextSizePicker, { props: { label: "Text size", sizes: ["x-large"] } });
         expect(screen.getByText(sizeName("x-large"))).toBeTruthy();
     });
 
     test("§7.5 sizeLabels override the default title-case label", () => {
-        render(TextSizeChooser, {
+        render(TextSizePicker, {
             props: {
                 label: "Text size",
                 sizes: ["small", "large"],
@@ -114,16 +114,16 @@ describe("TextSizeChooser — markup contract (§7.1–§7.5)", () => {
     });
 });
 
-describe("TextSizeChooser — keyboard contract (APG listbox)", () => {
+describe("TextSizePicker — keyboard contract (APG listbox)", () => {
     async function openWith(key: string) {
-        render(TextSizeChooser, { props: { label: "Text size", sizes: SIZES } });
+        render(TextSizePicker, { props: { label: "Text size", sizes: SIZES } });
         await flush();
         const button = screen.getByRole("button");
         await fireEvent.keyDown(button, { key });
         await flush();
         return {
             button,
-            list: document.querySelector(".text-size-chooser-list") as HTMLElement,
+            list: document.querySelector(".text-size-picker-list") as HTMLElement,
         };
     }
 
@@ -189,28 +189,28 @@ describe("TextSizeChooser — keyboard contract (APG listbox)", () => {
     });
 });
 
-describe("TextSizeChooser — application (§7.6–§7.10)", () => {
+describe("TextSizePicker — application (§7.6–§7.10)", () => {
     test("§7.6 default initial value is 'medium' when present in sizes", async () => {
-        render(TextSizeChooser, { props: { label: "Text size", sizes: SIZES } });
+        render(TextSizePicker, { props: { label: "Text size", sizes: SIZES } });
         await flush();
         expect(document.documentElement.dataset.textSize).toBe("medium");
     });
 
     test("§7.6 default initial value falls back to sizes[0] when 'medium' is absent", async () => {
-        render(TextSizeChooser, { props: { label: "Text size", sizes: ["small", "large"] } });
+        render(TextSizePicker, { props: { label: "Text size", sizes: ["small", "large"] } });
         await flush();
         expect(document.documentElement.dataset.textSize).toBe("small");
     });
 
     test("§7.7 sets data-text-size on documentElement", async () => {
-        render(TextSizeChooser, { props: { label: "Text size", sizes: SIZES } });
+        render(TextSizePicker, { props: { label: "Text size", sizes: SIZES } });
         await flush();
         expect(document.documentElement.getAttribute("data-text-size")).toBe("medium");
     });
 
     test("§7.8 selecting an option updates data-text-size and fires onChange", async () => {
         const onChange = vi.fn();
-        render(TextSizeChooser, { props: { label: "Text size", sizes: SIZES, onChange } });
+        render(TextSizePicker, { props: { label: "Text size", sizes: SIZES, onChange } });
         await flush();
         await pick("x-large");
         await flush();
@@ -219,7 +219,7 @@ describe("TextSizeChooser — application (§7.6–§7.10)", () => {
     });
 
     test("§7.9 persists to localStorage and reads back on a fresh mount", async () => {
-        const { unmount } = render(TextSizeChooser, {
+        const { unmount } = render(TextSizePicker, {
             props: { label: "Text size", sizes: SIZES, storageKey: "lily-text-size" },
         });
         await flush();
@@ -229,7 +229,7 @@ describe("TextSizeChooser — application (§7.6–§7.10)", () => {
         unmount();
 
         document.documentElement.removeAttribute("data-text-size");
-        render(TextSizeChooser, {
+        render(TextSizePicker, {
             props: { label: "Text size", sizes: SIZES, storageKey: "lily-text-size" },
         });
         await flush();
@@ -238,7 +238,7 @@ describe("TextSizeChooser — application (§7.6–§7.10)", () => {
 
     test("§7.10 a supplied value prop wins over storage and defaults", async () => {
         localStorage.setItem("lily-text-size", "x-large");
-        render(TextSizeChooser, {
+        render(TextSizePicker, {
             props: {
                 label: "Text size",
                 sizes: SIZES,
@@ -251,9 +251,9 @@ describe("TextSizeChooser — application (§7.6–§7.10)", () => {
     });
 });
 
-describe("TextSizeChooser — spread + custom children (§7.12–§7.13)", () => {
+describe("TextSizePicker — spread + custom children (§7.12–§7.13)", () => {
     test("§7.12 extra attributes spread onto the <select>", () => {
-        render(TextSizeChooser, {
+        render(TextSizePicker, {
             props: { label: "Text size", sizes: SIZES, "data-testid": "ts" },
         });
         expect(screen.getByTestId("ts")).toBeTruthy();
@@ -271,7 +271,7 @@ describe("TextSizeChooser — spread + custom children (§7.12–§7.13)", () =>
             $anchor.before(node);
         }) as any;
 
-        render(TextSizeChooser, {
+        render(TextSizePicker, {
             props: {
                 label: "Text size",
                 sizes: SIZES,
@@ -284,8 +284,8 @@ describe("TextSizeChooser — spread + custom children (§7.12–§7.13)", () =>
         await flush();
         const custom = screen.getByTestId("custom");
         // The custom glyph replaces the default "A" inside the button.
-        expect(custom.closest("button")?.className).toContain("text-size-chooser-button");
-        expect(document.querySelector(".text-size-chooser-icon")).toBeNull();
+        expect(custom.closest("button")?.className).toContain("text-size-picker-button");
+        expect(document.querySelector(".text-size-picker-icon")).toBeNull();
         expect(custom.getAttribute("data-open")).toBe("false");
         expect(custom.getAttribute("data-value")).toBe("large");
         expect(custom.getAttribute("data-label-x-large")).toBe("X Large");

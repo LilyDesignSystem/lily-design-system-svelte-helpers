@@ -12,7 +12,7 @@
      *
      * VS15 requests *text* presentation. Without it the browser picks the
      * colour-emoji font and the globe renders blue, which does not match
-     * theme-chooser's monochrome ◑ — the two controls sit next to each
+     * theme-picker's monochrome ◑ — the two controls sit next to each
      * other in a page header and should read as one set.
      */
     export const GLOBE_WITH_MERIDIANS = "\u{1F310}\uFE0E";
@@ -27,7 +27,7 @@
         labelFor: (locale: string) => string;
     };
 
-    /** Public props for LocaleChooser. See `spec/index.md` §4 for the contract. */
+    /** Public props for LocalePicker. See `spec/index.md` §4 for the contract. */
     export type Props = {
         /** Accessible name for the button and the listbox. */
         label: string;
@@ -128,9 +128,9 @@
 
     let uid = 0;
     /** Stable per-instance id prefix; SSR-safe (no Math.random / Date.now). */
-    export function nextLocaleChooserId(): string {
+    export function nextLocalePickerId(): string {
         uid += 1;
-        return `locale-chooser-${uid}`;
+        return `locale-picker-${uid}`;
     }
 </script>
 
@@ -152,7 +152,7 @@
         ...restProps
     }: Props = $props();
 
-    const baseId = nextLocaleChooserId();
+    const baseId = nextLocalePickerId();
     const listId = `${baseId}-list`;
     const optionId = (i: number) => `${baseId}-option-${i}`;
 
@@ -385,7 +385,7 @@
 
 <div
     bind:this={rootEl}
-    class={`locale-chooser ${className}`.trim()}
+    class={`locale-picker ${className}`.trim()}
     onfocusout={onRootFocusOut}
     {...restProps}
 >
@@ -394,7 +394,7 @@
     <button
         bind:this={buttonEl}
         type="button"
-        class="locale-chooser-button"
+        class="locale-picker-button"
         aria-label={label}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -405,13 +405,13 @@
         {#if children}
             {@render children({ value: value ?? "", open, labelFor })}
         {:else}
-            <span class="locale-chooser-icon" aria-hidden="true">{GLOBE_WITH_MERIDIANS}</span>
+            <span class="locale-picker-icon" aria-hidden="true">{GLOBE_WITH_MERIDIANS}</span>
         {/if}
     </button>
 
     <ul
         bind:this={listEl}
-        class="locale-chooser-list"
+        class="locale-picker-list"
         id={listId}
         role="listbox"
         aria-label={label}
@@ -422,7 +422,7 @@
     >
         {#each locales as locale, i (locale)}
             <li
-                class="locale-chooser-option"
+                class="locale-picker-option"
                 id={optionId(i)}
                 role="option"
                 aria-selected={locale === value}

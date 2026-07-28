@@ -1,12 +1,12 @@
 import { render, screen, fireEvent } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-import LocaleChooser, {
+import LocalePicker, {
     bcp47LocaleTag,
     isRtlLocale,
     localeName,
     matchNavigatorLanguage,
-} from "./LocaleChooser.svelte";
+} from "./LocalePicker.svelte";
 
 const LOCALES = ["en", "en_US", "fr", "fr_CA", "ar"];
 
@@ -35,11 +35,11 @@ afterEach(() => {
 /** Open the listbox and click the option for `code`. */
 async function pick(code: string, locales: string[] = LOCALES): Promise<void> {
     await fireEvent.click(screen.getByRole("button"));
-    const opts = document.querySelectorAll(".locale-chooser-option");
+    const opts = document.querySelectorAll(".locale-picker-option");
     await fireEvent.click(opts[locales.indexOf(code)]);
 }
 
-describe("LocaleChooser — pure helpers (§7.2)", () => {
+describe("LocalePicker — pure helpers (§7.2)", () => {
     test("§7.7 bcp47LocaleTag converts en_US to en-US", () => {
         expect(bcp47LocaleTag("en_US")).toBe("en-US");
     });
@@ -85,9 +85,9 @@ describe("LocaleChooser — pure helpers (§7.2)", () => {
     });
 });
 
-describe("LocaleChooser — markup contract (§4.3, §7.1)", () => {
+describe("LocalePicker — markup contract (§4.3, §7.1)", () => {
     test("§7.1 renders a button that controls a listbox", () => {
-        render(LocaleChooser, { props: { label: "Language", locales: LOCALES } });
+        render(LocalePicker, { props: { label: "Language", locales: LOCALES } });
         const button = screen.getByRole("button");
         expect(button.tagName).toBe("BUTTON");
         expect(button.getAttribute("type")).toBe("button");
@@ -99,31 +99,31 @@ describe("LocaleChooser — markup contract (§4.3, §7.1)", () => {
     });
 
     test("§7.1 the button renders the globe glyph, hidden from assistive tech", () => {
-        render(LocaleChooser, { props: { label: "Language", locales: LOCALES } });
-        const icon = document.querySelector(".locale-chooser-icon") as HTMLElement;
+        render(LocalePicker, { props: { label: "Language", locales: LOCALES } });
+        const icon = document.querySelector(".locale-picker-icon") as HTMLElement;
         // U+1F310 GLOBE WITH MERIDIANS (decimal &#127760;) + U+FE0E
         // VARIATION SELECTOR-15, which forces monochrome text presentation
-        // so the glyph matches theme-chooser's ◑ rather than rendering as a
+        // so the glyph matches theme-picker's ◑ rather than rendering as a
         // colour emoji.
         expect(icon.textContent).toBe("\u{1F310}\uFE0E");
         expect(icon.getAttribute("aria-hidden")).toBe("true");
     });
 
     test("§7.2 aria-label names the button and the listbox", () => {
-        render(LocaleChooser, {
+        render(LocalePicker, {
             props: { label: "Choose language", locales: LOCALES },
         });
         expect(screen.getByRole("button", { name: "Choose language" })).toBeTruthy();
-        const list = document.querySelector(".locale-chooser-list") as HTMLElement;
+        const list = document.querySelector(".locale-picker-list") as HTMLElement;
         expect(list.getAttribute("aria-label")).toBe("Choose language");
     });
 
     test("§7.3 one option per locale; the hidden input carries the supplied name", async () => {
-        render(LocaleChooser, {
+        render(LocalePicker, {
             props: { label: "Language", locales: LOCALES, name: "lang" },
         });
         await flush();
-        const options = document.querySelectorAll(".locale-chooser-option");
+        const options = document.querySelectorAll(".locale-picker-option");
         expect(options.length).toBe(LOCALES.length);
         const hidden = document.querySelector(
             'input[type="hidden"]',
@@ -133,8 +133,8 @@ describe("LocaleChooser — markup contract (§4.3, §7.1)", () => {
     });
 
     test("§7.4 the listbox is hidden until the button is activated", async () => {
-        render(LocaleChooser, { props: { label: "Language", locales: LOCALES } });
-        const list = document.querySelector(".locale-chooser-list") as HTMLElement;
+        render(LocalePicker, { props: { label: "Language", locales: LOCALES } });
+        const list = document.querySelector(".locale-picker-list") as HTMLElement;
         expect(list.hasAttribute("hidden")).toBe(true);
         await fireEvent.click(screen.getByRole("button"));
         expect(list.hasAttribute("hidden")).toBe(false);
@@ -142,7 +142,7 @@ describe("LocaleChooser — markup contract (§4.3, §7.1)", () => {
     });
 
     test("§7.4 the active locale is the aria-selected option", async () => {
-        render(LocaleChooser, { props: { label: "Language", locales: LOCALES } });
+        render(LocalePicker, { props: { label: "Language", locales: LOCALES } });
         await flush();
         await fireEvent.click(screen.getByRole("button"));
         const selected = document.querySelectorAll('[role="option"][aria-selected="true"]');
@@ -151,17 +151,17 @@ describe("LocaleChooser — markup contract (§4.3, §7.1)", () => {
     });
 
     test("§7.5 each option carries lang in BCP 47 hyphen form", () => {
-        render(LocaleChooser, {
+        render(LocalePicker, {
             props: { label: "Language", locales: ["en", "en_US", "zh_Hant_TW"] },
         });
-        const opts = document.querySelectorAll<HTMLElement>(".locale-chooser-option");
+        const opts = document.querySelectorAll<HTMLElement>(".locale-picker-option");
         expect(opts[0].getAttribute("lang")).toBe("en");
         expect(opts[1].getAttribute("lang")).toBe("en-US");
         expect(opts[2].getAttribute("lang")).toBe("zh-Hant-TW");
     });
 
     test("§7.6 visible option text uses localeLabels override when supplied", () => {
-        render(LocaleChooser, {
+        render(LocalePicker, {
             props: {
                 label: "Language",
                 locales: ["en", "fr"],
@@ -173,23 +173,23 @@ describe("LocaleChooser — markup contract (§4.3, §7.1)", () => {
     });
 
     test("§7.6 falls back to defaultLocaleLabels when localeLabels missing", () => {
-        render(LocaleChooser, {
+        render(LocalePicker, {
             props: { label: "Language", locales: ["en_US"] },
         });
         expect(screen.getByText("English (United States)")).toBeTruthy();
     });
 });
 
-describe("LocaleChooser — keyboard contract (APG listbox, §7.6)", () => {
+describe("LocalePicker — keyboard contract (APG listbox, §7.6)", () => {
     async function openWith(key: string) {
-        render(LocaleChooser, { props: { label: "Language", locales: LOCALES } });
+        render(LocalePicker, { props: { label: "Language", locales: LOCALES } });
         await flush();
         const button = screen.getByRole("button");
         await fireEvent.keyDown(button, { key });
         await flush();
         return {
             button,
-            list: document.querySelector(".locale-chooser-list") as HTMLElement,
+            list: document.querySelector(".locale-picker-list") as HTMLElement,
         };
     }
 
@@ -262,10 +262,10 @@ describe("LocaleChooser — keyboard contract (APG listbox, §7.6)", () => {
     });
 
     test("§7.27 clicking an option selects and applies it", async () => {
-        render(LocaleChooser, { props: { label: "Language", locales: LOCALES } });
+        render(LocalePicker, { props: { label: "Language", locales: LOCALES } });
         await flush();
         await fireEvent.click(screen.getByRole("button"));
-        const opts = document.querySelectorAll(".locale-chooser-option");
+        const opts = document.querySelectorAll(".locale-picker-option");
         await fireEvent.click(opts[4]);
         await flush();
         expect(document.documentElement.getAttribute("lang")).toBe("ar");
@@ -273,9 +273,9 @@ describe("LocaleChooser — keyboard contract (APG listbox, §7.6)", () => {
     });
 });
 
-describe("LocaleChooser — locale application (§5.5, §7.3)", () => {
+describe("LocalePicker — locale application (§5.5, §7.3)", () => {
     test("§7.13 sets target.lang to the BCP 47 form of the resolved initial locale", async () => {
-        render(LocaleChooser, {
+        render(LocalePicker, {
             props: { label: "Language", locales: LOCALES, defaultValue: "en_US" },
         });
         await flush();
@@ -283,7 +283,7 @@ describe("LocaleChooser — locale application (§5.5, §7.3)", () => {
     });
 
     test("§7.14 sets dir=rtl for an RTL initial locale", async () => {
-        render(LocaleChooser, {
+        render(LocalePicker, {
             props: { label: "Language", locales: ["ar", "en"], defaultValue: "ar" },
         });
         await flush();
@@ -291,7 +291,7 @@ describe("LocaleChooser — locale application (§5.5, §7.3)", () => {
     });
 
     test("§7.14 sets dir=ltr for an LTR initial locale", async () => {
-        render(LocaleChooser, {
+        render(LocalePicker, {
             props: { label: "Language", locales: ["en", "ar"], defaultValue: "en" },
         });
         await flush();
@@ -299,7 +299,7 @@ describe("LocaleChooser — locale application (§5.5, §7.3)", () => {
     });
 
     test("§7.15 when applyDir=false, dir is never written", async () => {
-        render(LocaleChooser, {
+        render(LocalePicker, {
             props: {
                 label: "Language",
                 locales: ["ar", "en"],
@@ -314,7 +314,7 @@ describe("LocaleChooser — locale application (§5.5, §7.3)", () => {
 
     test("§7.16 selecting a different option updates lang, dir, and fires onChange", async () => {
         const onChange = vi.fn();
-        render(LocaleChooser, {
+        render(LocalePicker, {
             props: {
                 label: "Language",
                 locales: LOCALES,
@@ -332,7 +332,7 @@ describe("LocaleChooser — locale application (§5.5, §7.3)", () => {
 
     test("§7.16 onChange receives the consumer-form code (not BCP 47)", async () => {
         const onChange = vi.fn();
-        render(LocaleChooser, {
+        render(LocalePicker, {
             props: {
                 label: "Language",
                 locales: LOCALES,
@@ -350,7 +350,7 @@ describe("LocaleChooser — locale application (§5.5, §7.3)", () => {
     test("§7.17 a custom target receives lang and dir", async () => {
         const target = document.createElement("section");
         document.body.appendChild(target);
-        render(LocaleChooser, {
+        render(LocalePicker, {
             props: {
                 label: "Language",
                 locales: ["ar", "en"],
@@ -368,9 +368,9 @@ describe("LocaleChooser — locale application (§5.5, §7.3)", () => {
     });
 });
 
-describe("LocaleChooser — initial-value resolution (§5.2, §5.3, §7.4)", () => {
+describe("LocalePicker — initial-value resolution (§5.2, §5.3, §7.4)", () => {
     test("§7.18 persists to localStorage and reads back on a fresh mount", async () => {
-        const { unmount } = render(LocaleChooser, {
+        const { unmount } = render(LocalePicker, {
             props: {
                 label: "Language",
                 locales: LOCALES,
@@ -384,7 +384,7 @@ describe("LocaleChooser — initial-value resolution (§5.2, §5.3, §7.4)", () 
         unmount();
         resetRoot();
 
-        render(LocaleChooser, {
+        render(LocalePicker, {
             props: {
                 label: "Language",
                 locales: LOCALES,
@@ -397,7 +397,7 @@ describe("LocaleChooser — initial-value resolution (§5.2, §5.3, §7.4)", () 
 
     test("§7.19 a supplied non-empty value prop wins over storage and defaults", async () => {
         localStorage.setItem("lily-locale", "ar");
-        render(LocaleChooser, {
+        render(LocalePicker, {
             props: {
                 label: "Language",
                 locales: LOCALES,
@@ -419,7 +419,7 @@ describe("LocaleChooser — initial-value resolution (§5.2, §5.3, §7.4)", () 
             configurable: true,
             get: () => ["fr-CA", "fr"],
         });
-        render(LocaleChooser, {
+        render(LocalePicker, {
             props: {
                 label: "Language",
                 locales: ["en", "fr_CA", "fr"],
@@ -440,7 +440,7 @@ describe("LocaleChooser — initial-value resolution (§5.2, §5.3, §7.4)", () 
             configurable: true,
             get: () => ["fr-CA"],
         });
-        render(LocaleChooser, {
+        render(LocalePicker, {
             props: {
                 label: "Language",
                 locales: ["en", "fr"],
@@ -453,9 +453,9 @@ describe("LocaleChooser — initial-value resolution (§5.2, §5.3, §7.4)", () 
     });
 });
 
-describe("LocaleChooser — spread + custom children (§4.1, §7.5)", () => {
+describe("LocalePicker — spread + custom children (§4.1, §7.5)", () => {
     test("§7.22 extra attributes spread onto the <select>", () => {
-        render(LocaleChooser, {
+        render(LocalePicker, {
             props: {
                 label: "Language",
                 locales: LOCALES,
@@ -477,7 +477,7 @@ describe("LocaleChooser — spread + custom children (§4.1, §7.5)", () => {
             $anchor.before(node);
         }) as any;
 
-        render(LocaleChooser, {
+        render(LocalePicker, {
             props: {
                 label: "Language",
                 locales: LOCALES,
@@ -490,8 +490,8 @@ describe("LocaleChooser — spread + custom children (§4.1, §7.5)", () => {
         await flush();
         const node = screen.getByTestId("custom");
         // The custom glyph replaces the default globe inside the button.
-        expect(node.closest("button")?.className).toContain("locale-chooser-button");
-        expect(document.querySelector(".locale-chooser-icon")).toBeNull();
+        expect(node.closest("button")?.className).toContain("locale-picker-button");
+        expect(document.querySelector(".locale-picker-icon")).toBeNull();
         expect(node.getAttribute("data-open")).toBe("false");
         expect(node.getAttribute("data-value")).toBe("fr");
         expect(node.getAttribute("data-label-en-us")).toBe("English (United States)");

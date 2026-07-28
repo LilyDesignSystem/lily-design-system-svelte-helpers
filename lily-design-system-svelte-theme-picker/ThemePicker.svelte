@@ -1,50 +1,47 @@
 <script lang="ts" module>
     import type { Snippet } from "svelte";
 
-    /**
-     * Default button glyph: U+0041 LATIN CAPITAL LETTER A.
-     *
-     * A plain letter rather than a pictograph, deliberately. The obvious
-     * candidate — U+1F5DB DECREASE FONT SIZE SYMBOL — has no real glyph in
-     * common font stacks and falls back to a crude bitmap shape, and it
-     * means *decrease* rather than *size*. "A" renders in the page's own
-     * font on every platform, stays monochrome like theme-chooser's ◑, and
-     * is the conventional text-size affordance.
-     */
-    export const LATIN_CAPITAL_LETTER_A = "A";
+    /** Default button glyph: U+25D1 CIRCLE WITH RIGHT HALF BLACK. */
+    export const CIRCLE_WITH_RIGHT_HALF_BLACK = "\u25D1";
 
     /** Arguments passed to a custom `children` snippet (the button glyph). */
     export type ChildArgs = {
-        /** Currently selected size slug. */
+        /** Currently selected theme slug. */
         value: string;
         /** Is the listbox open? */
         open: boolean;
         /** Resolve a slug to its display label. */
-        labelFor: (size: string) => string;
+        labelFor: (theme: string) => string;
     };
 
-    /** Public props for TextSizeChooser. See `spec/index.md` §4 for the contract. */
+    /** Public props for ThemePicker. See `spec/index.md` §4 for the contract. */
     export type Props = {
         /** Accessible name for the button and the listbox. */
         label: string;
-        /** Available size slugs, e.g. ["small","medium","large","x-large"]. */
-        sizes: string[];
-        /** Currently selected size slug. Two-way bindable. */
+        /** Base URL of the themes directory, e.g. "/assets/themes/". */
+        themesUrl: string;
+        /** Available theme slugs. */
+        themes: string[];
+        /** Currently selected theme slug. Two-way bindable. */
         value?: string;
-        /** Initial size when nothing else is supplied. */
+        /** Initial theme when nothing else is supplied. */
         defaultValue?: string;
         /** If set, persist the selection to localStorage under this key. */
         storageKey?: string;
-        /** `name` of the hidden input that carries the value in a form. */
+        /** Resolve `prefers-color-scheme` to a supported theme on first visit. */
+        detectFromSystem?: boolean;
+        /** Discriminates the managed <link>; also the hidden input's `name`. */
         name?: string;
-        /** Element that receives `data-text-size`. Defaults to document.documentElement. */
+        /** File extension appended to each slug when constructing the URL. */
+        extension?: string;
+        /** Element that receives `data-theme`. Defaults to document.documentElement. */
         target?: HTMLElement | null;
         /** Optional pretty labels per slug. */
-        sizeLabels?: Record<string, string>;
-        /** Replaces the default "A" glyph inside the button. */
+        themeLabels?: Record<string, string>;
+        /** Replaces the default half-circle glyph inside the button. */
         children?: Snippet<[ChildArgs]>;
-        /** Called after the control applies a new size. */
-        onChange?: (size: string) => void;
+        /** Called after the control applies a new theme. */
+        onChange?: (theme: string) => void;
         /** Extra CSS class on the root. */
         class?: string;
         /** Spread props onto the root element. */
@@ -52,22 +49,57 @@
     };
 
     /**
-     * Resolve a size slug to its display label: each hyphen-separated word
-     * title-cased, so "x-large" renders as "X Large". Mirrors `themeName`
-     * in theme-chooser and `localeName` in locale-chooser.
+     * Resolve a theme slug to its display label: each hyphen-separated
+     * word title-cased, so a slug like
+     * "united-kingdom-national-health-service-england-for-patients"
+     * renders as "United Kingdom National Health Service England For
+     * Patients". Mirrors `localeName` in locale-picker.
      */
-    export function sizeName(size: string): string {
-        return size
+    export function themeName(theme: string): string {
+        return theme
             .split("-")
             .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
             .join(" ");
     }
 
+    /**
+     * Resolve the OS colour-scheme preference to a supported theme slug.
+     * Mirrors `matchNavigatorLanguage` in locale-picker. Returns "" when
+     * the preferred scheme is not in `themes`, or when matchMedia is
+     * unavailable (SSR).
+     */
+    export function matchSystemTheme(themes: readonly string[]): string {
+        if (
+            typeof window === "undefined" ||
+            typeof window.matchMedia !== "function"
+        ) {
+            return "";
+        }
+        const wanted = window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light";
+        return themes.includes(wanted) ? wanted : "";
+    }
+
+    /** Normalise the themes directory URL to end with exactly one "/". */
+    export function normaliseThemesUrl(themesUrl: string): string {
+        return themesUrl.endsWith("/") ? themesUrl : themesUrl + "/";
+    }
+
+    /** Construct the href for a given theme slug. */
+    export function themeHref(
+        themesUrl: string,
+        slug: string,
+        extension: string,
+    ): string {
+        return normaliseThemesUrl(themesUrl) + slug + extension;
+    }
+
     let uid = 0;
     /** Stable per-instance id prefix; SSR-safe (no Math.random / Date.now). */
-    export function nextTextSizeChooserId(): string {
+    export function nextThemePickerId(): string {
         uid += 1;
-        return `text-size-chooser-${uid}`;
+        return `theme-picker-${uid}`;
     }
 </script>
 
@@ -75,19 +107,22 @@
     let {
         class: className = "",
         label,
-        sizes,
+        themesUrl,
+        themes,
         value = $bindable(""),
         defaultValue,
         storageKey,
-        name = "text-size",
+        detectFromSystem = false,
+        name = "theme",
+        extension = ".css",
         target,
-        sizeLabels = {},
+        themeLabels = {},
         children,
         onChange,
         ...restProps
     }: Props = $props();
 
-    const baseId = nextTextSizeChooserId();
+    const baseId = nextThemePickerId();
     const listId = `${baseId}-list`;
     const optionId = (i: number) => `${baseId}-option-${i}`;
 
@@ -101,14 +136,27 @@
     let typeahead = "";
     let typeaheadTimer: ReturnType<typeof setTimeout> | undefined;
 
-    function labelFor(size: string): string {
-        if (size in sizeLabels) return sizeLabels[size];
-        return sizeName(size);
+    function labelFor(theme: string): string {
+        if (theme in themeLabels) return themeLabels[theme];
+        return themeName(theme);
     }
 
-    function applySize(slug: string): void {
+    function getManagedLink(): HTMLLinkElement {
+        const selector = `link[data-lily-theme-picker="${name}"]`;
+        let link = document.head.querySelector<HTMLLinkElement>(selector);
+        if (!link) {
+            link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.setAttribute("data-lily-theme-picker", name);
+            document.head.appendChild(link);
+        }
+        return link;
+    }
+
+    function applyTheme(slug: string): void {
         if (typeof document === "undefined" || !slug) return;
-        (target ?? document.documentElement).setAttribute("data-text-size", slug);
+        getManagedLink().href = themeHref(themesUrl, slug, extension);
+        (target ?? document.documentElement).setAttribute("data-theme", slug);
         if (storageKey) {
             try {
                 localStorage.setItem(storageKey, slug);
@@ -119,7 +167,7 @@
         onChange?.(slug);
     }
 
-    function setSize(slug: string): void {
+    function setTheme(slug: string): void {
         value = slug;
     }
 
@@ -128,7 +176,7 @@
     // ---------------------------------------------------------------
 
     function openList(startIndex?: number): void {
-        const selected = sizes.indexOf(value);
+        const selected = themes.indexOf(value);
         activeIndex = startIndex ?? (selected >= 0 ? selected : 0);
         open = true;
         // Focus moves to the listbox; the active option is conveyed via
@@ -147,8 +195,8 @@
     }
 
     function choose(index: number): void {
-        const slug = sizes[index];
-        if (slug) setSize(slug);
+        const slug = themes[index];
+        if (slug) setTheme(slug);
         closeList();
     }
 
@@ -160,12 +208,19 @@
         // after activeIndex is already assigned, so the suite stays green
         // while this path never actually runs.
         const el = document.getElementById(optionId(activeIndex));
+        // Guard the METHOD, not just the element: jsdom implements no
+        // scrollIntoView, so `el?.scrollIntoView(...)` throws once `el`
+        // exists — and it throws after activeIndex is already assigned,
+        // which is why the suite stayed green while this path never ran.
         el?.scrollIntoView?.({ block: "nearest" });
     }
 
     function moveActive(delta: number): void {
-        if (sizes.length === 0) return;
-        const next = Math.min(Math.max(activeIndex + delta, 0), sizes.length - 1);
+        if (themes.length === 0) return;
+        const next = Math.min(
+            Math.max(activeIndex + delta, 0),
+            themes.length - 1,
+        );
         activeIndex = next;
         scrollActiveIntoView();
     }
@@ -176,9 +231,9 @@
         typeaheadTimer = setTimeout(() => (typeahead = ""), 500);
         const from = activeIndex < 0 ? 0 : activeIndex;
         // Search forward from the active option, wrapping once.
-        for (let n = 0; n < sizes.length; n++) {
-            const i = (from + n) % sizes.length;
-            if (labelFor(sizes[i]).toLowerCase().startsWith(typeahead)) {
+        for (let n = 0; n < themes.length; n++) {
+            const i = (from + n) % themes.length;
+            if (labelFor(themes[i]).toLowerCase().startsWith(typeahead)) {
                 activeIndex = i;
                 scrollActiveIntoView();
                 return;
@@ -196,7 +251,7 @@
                 break;
             case "ArrowUp":
                 event.preventDefault();
-                openList(sizes.length - 1);
+                openList(themes.length - 1);
                 break;
         }
     }
@@ -218,7 +273,7 @@
                 break;
             case "End":
                 event.preventDefault();
-                activeIndex = sizes.length - 1;
+                activeIndex = themes.length - 1;
                 scrollActiveIntoView();
                 break;
             case "Enter":
@@ -235,7 +290,12 @@
                 closeList(false);
                 break;
             default:
-                if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+                if (
+                    event.key.length === 1 &&
+                    !event.ctrlKey &&
+                    !event.metaKey &&
+                    !event.altKey
+                ) {
                     runTypeahead(event.key);
                 }
         }
@@ -248,7 +308,7 @@
     }
 
     // ---------------------------------------------------------------
-    // Initial value resolution + apply
+    // Initial value resolution + apply (unchanged from the select era)
     // ---------------------------------------------------------------
 
     let initialised = false;
@@ -266,10 +326,14 @@
                     // ignore privacy errors
                 }
             }
+            if (!initial && detectFromSystem) {
+                initial = matchSystemTheme(themes);
+            }
+
             if (!initial) {
                 initial =
                     defaultValue ??
-                    (sizes.includes("medium") ? "medium" : sizes[0]) ??
+                    (themes.includes("light") ? "light" : themes[0]) ??
                     "";
             }
             if (initial && initial !== current) {
@@ -278,7 +342,7 @@
             }
         }
 
-        if (current) applySize(current);
+        if (current) applyTheme(current);
     });
 </script>
 
@@ -292,7 +356,7 @@
 
 <div
     bind:this={rootEl}
-    class={`text-size-chooser ${className}`.trim()}
+    class={`theme-picker ${className}`.trim()}
     onfocusout={onRootFocusOut}
     {...restProps}
 >
@@ -301,7 +365,7 @@
     <button
         bind:this={buttonEl}
         type="button"
-        class="text-size-chooser-button"
+        class="theme-picker-button"
         aria-label={label}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -312,33 +376,35 @@
         {#if children}
             {@render children({ value: value ?? "", open, labelFor })}
         {:else}
-            <span class="text-size-chooser-icon" aria-hidden="true"
-                >{LATIN_CAPITAL_LETTER_A}</span
+            <span class="theme-picker-icon" aria-hidden="true"
+                >{CIRCLE_WITH_RIGHT_HALF_BLACK}</span
             >
         {/if}
     </button>
 
     <ul
         bind:this={listEl}
-        class="text-size-chooser-list"
+        class="theme-picker-list"
         id={listId}
         role="listbox"
         aria-label={label}
-        aria-activedescendant={open && activeIndex >= 0 ? optionId(activeIndex) : undefined}
+        aria-activedescendant={open && activeIndex >= 0
+            ? optionId(activeIndex)
+            : undefined}
         tabindex="-1"
         hidden={!open}
         onkeydown={onListKeydown}
     >
-        {#each sizes as size, i (size)}
+        {#each themes as theme, i (theme)}
             <li
-                class="text-size-chooser-option"
+                class="theme-picker-option"
                 id={optionId(i)}
                 role="option"
-                aria-selected={size === value}
+                aria-selected={theme === value}
                 data-active={i === activeIndex ? "" : undefined}
                 onclick={() => choose(i)}
             >
-                {labelFor(size)}
+                {labelFor(theme)}
             </li>
         {/each}
     </ul>

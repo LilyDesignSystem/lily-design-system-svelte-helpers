@@ -1,12 +1,12 @@
 import { render, screen, fireEvent } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-import ThemeChooser, {
+import ThemePicker, {
   normaliseThemesUrl,
   themeHref,
   themeName,
   matchSystemTheme,
-} from "./ThemeChooser.svelte";
+} from "./ThemePicker.svelte";
 
 const THEMES = ["light", "dark", "abyss"];
 const URL_TRAILING = "/assets/themes/";
@@ -38,7 +38,7 @@ afterEach(() => {
   document.documentElement.removeAttribute("data-theme");
 });
 
-describe("ThemeChooser — pure helpers", () => {
+describe("ThemePicker — pure helpers", () => {
   test("normaliseThemesUrl keeps a trailing slash", () => {
     expect(normaliseThemesUrl("/a/")).toBe("/a/");
   });
@@ -56,13 +56,13 @@ describe("ThemeChooser — pure helpers", () => {
 /** Open the listbox and click the option for `slug`. */
 async function pick(slug: string, themes: string[] = THEMES): Promise<void> {
   await fireEvent.click(screen.getByRole("button"));
-  const opts = document.querySelectorAll(".theme-chooser-option");
+  const opts = document.querySelectorAll(".theme-picker-option");
   await fireEvent.click(opts[themes.indexOf(slug)]);
 }
 
-describe("ThemeChooser — markup contract (§4.2, §7.1–§7.5)", () => {
+describe("ThemePicker — markup contract (§4.2, §7.1–§7.5)", () => {
   test("§7.1 renders a button that controls a listbox", () => {
-    render(ThemeChooser, {
+    render(ThemePicker, {
       props: { label: "Theme", themesUrl: URL_TRAILING, themes: THEMES },
     });
     const button = screen.getByRole("button");
@@ -78,26 +78,26 @@ describe("ThemeChooser — markup contract (§4.2, §7.1–§7.5)", () => {
   });
 
   test("§7.1 the button renders the half-circle glyph, hidden from assistive tech", () => {
-    render(ThemeChooser, {
+    render(ThemePicker, {
       props: { label: "Theme", themesUrl: URL_TRAILING, themes: THEMES },
     });
-    const icon = document.querySelector(".theme-chooser-icon") as HTMLElement;
+    const icon = document.querySelector(".theme-picker-icon") as HTMLElement;
     // U+25D1 CIRCLE WITH RIGHT HALF BLACK, decimal &#9681;
     expect(icon.textContent).toBe("\u25D1");
     expect(icon.getAttribute("aria-hidden")).toBe("true");
   });
 
   test("§7.2 aria-label names the button and the listbox", () => {
-    render(ThemeChooser, {
+    render(ThemePicker, {
       props: { label: "Choose theme", themesUrl: URL_TRAILING, themes: THEMES },
     });
     expect(screen.getByRole("button", { name: "Choose theme" })).toBeTruthy();
-    const list = document.querySelector(".theme-chooser-list") as HTMLElement;
+    const list = document.querySelector(".theme-picker-list") as HTMLElement;
     expect(list.getAttribute("aria-label")).toBe("Choose theme");
   });
 
   test("§7.3 one option per theme; the hidden input carries the supplied name", async () => {
-    render(ThemeChooser, {
+    render(ThemePicker, {
       props: {
         label: "Theme",
         themesUrl: URL_TRAILING,
@@ -106,7 +106,7 @@ describe("ThemeChooser — markup contract (§4.2, §7.1–§7.5)", () => {
       },
     });
     await flush();
-    const options = document.querySelectorAll(".theme-chooser-option");
+    const options = document.querySelectorAll(".theme-picker-option");
     expect(options.length).toBe(THEMES.length);
     const hidden = document.querySelector(
       'input[type="hidden"]',
@@ -116,10 +116,10 @@ describe("ThemeChooser — markup contract (§4.2, §7.1–§7.5)", () => {
   });
 
   test("§7.4 the listbox is hidden until the button is activated", async () => {
-    render(ThemeChooser, {
+    render(ThemePicker, {
       props: { label: "Theme", themesUrl: URL_TRAILING, themes: THEMES },
     });
-    const list = document.querySelector(".theme-chooser-list") as HTMLElement;
+    const list = document.querySelector(".theme-picker-list") as HTMLElement;
     expect(list.hasAttribute("hidden")).toBe(true);
     await fireEvent.click(screen.getByRole("button"));
     expect(list.hasAttribute("hidden")).toBe(false);
@@ -129,7 +129,7 @@ describe("ThemeChooser — markup contract (§4.2, §7.1–§7.5)", () => {
   });
 
   test("§7.4 the active theme is the aria-selected option", async () => {
-    render(ThemeChooser, {
+    render(ThemePicker, {
       props: { label: "Theme", themesUrl: URL_TRAILING, themes: THEMES },
     });
     await flush();
@@ -142,7 +142,7 @@ describe("ThemeChooser — markup contract (§4.2, §7.1–§7.5)", () => {
   });
 
   test("§7.5 default labels title-case the slug (no 'default' string)", () => {
-    const { container } = render(ThemeChooser, {
+    const { container } = render(ThemePicker, {
       props: {
         label: "Theme",
         themesUrl: URL_TRAILING,
@@ -155,7 +155,7 @@ describe("ThemeChooser — markup contract (§4.2, §7.1–§7.5)", () => {
   });
 
   test("§7.5 themeLabels override the default title-case label", () => {
-    render(ThemeChooser, {
+    render(ThemePicker, {
       props: {
         label: "Theme",
         themesUrl: URL_TRAILING,
@@ -168,9 +168,9 @@ describe("ThemeChooser — markup contract (§4.2, §7.1–§7.5)", () => {
   });
 });
 
-describe("ThemeChooser — keyboard contract (APG listbox)", () => {
+describe("ThemePicker — keyboard contract (APG listbox)", () => {
   async function openWith(key: string) {
-    render(ThemeChooser, {
+    render(ThemePicker, {
       props: { label: "Theme", themesUrl: URL_TRAILING, themes: THEMES },
     });
     await flush();
@@ -179,7 +179,7 @@ describe("ThemeChooser — keyboard contract (APG listbox)", () => {
     await flush();
     return {
       button,
-      list: document.querySelector(".theme-chooser-list") as HTMLElement,
+      list: document.querySelector(".theme-picker-list") as HTMLElement,
     };
   }
 
@@ -255,9 +255,9 @@ describe("ThemeChooser — keyboard contract (APG listbox)", () => {
   });
 });
 
-describe("ThemeChooser — dynamic loading (§5, §7.6–§7.11)", () => {
+describe("ThemePicker — dynamic loading (§5, §7.6–§7.11)", () => {
   test("§7.6 default initial value is 'light' when present in themes", async () => {
-    render(ThemeChooser, {
+    render(ThemePicker, {
       props: { label: "Theme", themesUrl: URL_TRAILING, themes: THEMES },
     });
     await flush();
@@ -265,7 +265,7 @@ describe("ThemeChooser — dynamic loading (§5, §7.6–§7.11)", () => {
   });
 
   test("§7.6 default initial value falls back to themes[0] when 'light' is absent", async () => {
-    render(ThemeChooser, {
+    render(ThemePicker, {
       props: {
         label: "Theme",
         themesUrl: URL_TRAILING,
@@ -277,7 +277,7 @@ describe("ThemeChooser — dynamic loading (§5, §7.6–§7.11)", () => {
   });
 
   test("§7.7 injects a managed <link> with the resolved href", async () => {
-    render(ThemeChooser, {
+    render(ThemePicker, {
       props: { label: "Theme", themesUrl: URL_TRAILING, themes: THEMES },
     });
     await flush();
@@ -289,7 +289,7 @@ describe("ThemeChooser — dynamic loading (§5, §7.6–§7.11)", () => {
 
   test("§7.8 selecting an option updates href, data-theme, and fires onChange", async () => {
     const onChange = vi.fn();
-    render(ThemeChooser, {
+    render(ThemePicker, {
       props: {
         label: "Theme",
         themesUrl: URL_TRAILING,
@@ -308,7 +308,7 @@ describe("ThemeChooser — dynamic loading (§5, §7.6–§7.11)", () => {
   });
 
   test("§7.9 persists to localStorage and reads back on fresh mount", async () => {
-    const { unmount } = render(ThemeChooser, {
+    const { unmount } = render(ThemePicker, {
       props: {
         label: "Theme",
         themesUrl: URL_TRAILING,
@@ -327,7 +327,7 @@ describe("ThemeChooser — dynamic loading (§5, §7.6–§7.11)", () => {
       .querySelectorAll("link[data-lily-theme-picker]")
       .forEach((n) => n.remove());
 
-    render(ThemeChooser, {
+    render(ThemePicker, {
       props: {
         label: "Theme",
         themesUrl: URL_TRAILING,
@@ -341,7 +341,7 @@ describe("ThemeChooser — dynamic loading (§5, §7.6–§7.11)", () => {
 
   test("§7.10 a supplied value prop wins over storage and defaults", async () => {
     localStorage.setItem("lily-theme", "abyss");
-    render(ThemeChooser, {
+    render(ThemePicker, {
       props: {
         label: "Theme",
         themesUrl: URL_TRAILING,
@@ -355,7 +355,7 @@ describe("ThemeChooser — dynamic loading (§5, §7.6–§7.11)", () => {
   });
 
   test("§7.11 missing trailing slash on themesUrl still yields one slash", async () => {
-    render(ThemeChooser, {
+    render(ThemePicker, {
       props: { label: "Theme", themesUrl: URL_NO_TRAILING, themes: THEMES },
     });
     await flush();
@@ -365,9 +365,9 @@ describe("ThemeChooser — dynamic loading (§5, §7.6–§7.11)", () => {
   });
 });
 
-describe("ThemeChooser — spread + custom children (§7.12–§7.13)", () => {
+describe("ThemePicker — spread + custom children (§7.12–§7.13)", () => {
   test("§7.12 extra attributes spread onto the <select>", () => {
-    render(ThemeChooser, {
+    render(ThemePicker, {
       props: {
         label: "Theme",
         themesUrl: URL_TRAILING,
@@ -390,7 +390,7 @@ describe("ThemeChooser — spread + custom children (§7.12–§7.13)", () => {
       $anchor.before(node);
     }) as any;
 
-    render(ThemeChooser, {
+    render(ThemePicker, {
       props: {
         label: "Theme",
         themesUrl: URL_TRAILING,
@@ -405,9 +405,9 @@ describe("ThemeChooser — spread + custom children (§7.12–§7.13)", () => {
     const custom = screen.getByTestId("custom");
     // The custom glyph replaces the default half-circle inside the button.
     expect(custom.closest("button")?.className).toContain(
-      "theme-chooser-button",
+      "theme-picker-button",
     );
-    expect(document.querySelector(".theme-chooser-icon")).toBeNull();
+    expect(document.querySelector(".theme-picker-icon")).toBeNull();
     expect(custom.getAttribute("data-open")).toBe("false");
     expect(custom.getAttribute("data-value")).toBe("dark");
     expect(custom.getAttribute("data-label-light")).toBe("Light");
@@ -430,7 +430,7 @@ function stubColorScheme(prefersDark: boolean): () => void {
   };
 }
 
-describe("ThemeChooser — harmonised surface with locale-chooser", () => {
+describe("ThemePicker — harmonised surface with locale-picker", () => {
   test("§7.18 themeName title-cases each hyphen-separated word", () => {
     expect(themeName("light")).toBe("Light");
     expect(themeName("high-contrast")).toBe("High Contrast");
@@ -440,7 +440,7 @@ describe("ThemeChooser — harmonised surface with locale-chooser", () => {
   });
 
   test("§7.18 themeName is what the default option label uses", () => {
-    render(ThemeChooser, {
+    render(ThemePicker, {
       props: {
         label: "Theme",
         themesUrl: URL_TRAILING,
@@ -473,7 +473,7 @@ describe("ThemeChooser — harmonised surface with locale-chooser", () => {
 
   test("§7.20 detectFromSystem resolves the initial theme, below storage", async () => {
     const restore = stubColorScheme(true);
-    render(ThemeChooser, {
+    render(ThemePicker, {
       props: {
         label: "Theme",
         themesUrl: URL_TRAILING,
@@ -490,7 +490,7 @@ describe("ThemeChooser — harmonised surface with locale-chooser", () => {
   test("§7.20 storage still wins over system detection", async () => {
     const restore = stubColorScheme(true);
     localStorage.setItem("lily-theme", "abyss");
-    render(ThemeChooser, {
+    render(ThemePicker, {
       props: {
         label: "Theme",
         themesUrl: URL_TRAILING,
@@ -506,7 +506,7 @@ describe("ThemeChooser — harmonised surface with locale-chooser", () => {
 
   test("§7.20 detection is off unless opted in", async () => {
     const restore = stubColorScheme(true);
-    render(ThemeChooser, {
+    render(ThemePicker, {
       props: { label: "Theme", themesUrl: URL_TRAILING, themes: THEMES },
     });
     await flush();
